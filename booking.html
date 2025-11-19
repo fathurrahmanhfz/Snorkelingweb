@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Dive - Sunset Snorkeling</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js & Helpers -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <style>
+        /* Page Specific Overrides */
+        body {
+            overflow: hidden;
+            /* Prevent scrolling on booking page, use internal scroll if needed */
+        }
+
+        #booking-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            display: flex;
+            background: rgba(0, 20, 40, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 30px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .visual-side {
+            flex: 1;
+            background: url('https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 40px;
+        }
+
+        .visual-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        .visual-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .form-side {
+            flex: 1.2;
+            padding: 50px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Form Steps */
+        .step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #a8b2d1;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #64ffda;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #64ffda;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Package Cards */
+        .package-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .package-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .package-card:hover,
+        .package-card.selected {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: #64ffda;
+        }
+
+        .price {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffd194;
+            margin-top: 10px;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-primary {
+            background: #64ffda;
+            color: #0a192f;
+        }
+
+        .btn-primary:hover {
+            background: #4ecdc4;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            border-color: white;
+        }
+
+        @media (max-width: 768px) {
+            #booking-container {
+                flex-direction: column;
+                height: 95vh;
+                overflow-y: auto;
+            }
+
+            .visual-side {
+                display: none;
+            }
+
+            .form-side {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container"></div> <!-- Reusing the background -->
+
+    <div id="booking-container">
+        <!-- Left Side: Visuals -->
+        <div class="visual-side">
+            <div class="visual-overlay"></div>
+            <div class="visual-content">
+                <h1 style="font-size: 3rem; line-height: 1.1;">Start Your<br>Adventure</h1>
+                <p style="margin-top: 20px; color: #e6f1ff;">"The sea, once it casts its spell, holds one in its net of
+                    wonder forever."</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Form -->
+        <div class="form-side">
+            <form id="booking-form">
+
+                <!-- Step 1: Date & Package -->
+                <div class="step active" id="step-1">
+                    <h2>Pilih Paket</h2>
+                    <p class="subtitle">Tentukan kapan dan bagaimana Anda ingin menyelam.</p>
+
+                    <div class="form-group">
+                        <label>Tanggal Keberangkatan</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pilih Paket</label>
+                        <div class="package-grid">
+                            <div class="package-card" onclick="selectPackage('basic', 350000)">
+                                <h3>Basic Dive</h3>
+                                <p style="font-size: 0.8rem; color: #ccc;">Snorkeling Gear + Guide</p>
+                                <div class="price">IDR 350k</div>
+                            </div>
+                            <div class="package-card" onclick="selectPackage('premium', 550000)">
+                                <h3>Sunset Premium</h3>
+                                <p style="font-size: 0.8rem; color: #ccc;">+ BBQ Dinner & Documentation</p>
+                                <div class="price">IDR 550k</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="selected-package" required>
+                        <input type="hidden" id="selected-price">
+                    </div>
+
+                    <div class="btn-group" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-primary" onclick="nextStep(2)">Next Step</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Personal Info -->
+                <div class="step" id="step-2">
+                    <h2>Data Diri</h2>
+                    <p class="subtitle">Kami perlu tahu siapa yang akan bergabung.</p>
+
+                    <div class="form-group">
+                        <label>Nama Lengkap</label>
+                        <input type="text" id="name" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" placeholder="john@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nomor WhatsApp</label>
+                        <input type="tel" id="phone" placeholder="0812..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Peserta</label>
+                        <input type="number" id="pax" min="1" value="1" onchange="updateTotal()" required>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep(1)">Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(3)">Next Step</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Confirmation -->
+                <div class="step" id="step-3">
+                    <h2>Konfirmasi</h2>
+                    <p class="subtitle">Pastikan semua data sudah benar.</p>
+
+                    <div
+                        style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #a8b2d1;">Paket</span>
+                            <span id="summary-package" style="font-weight: bold;">-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #a8b2d1;">Tanggal</span>
+                            <span id="summary-date" style="font-weight: bold;">-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: #a8b2d1;">Peserta</span>
+                            <span id="summary-pax" style="font-weight: bold;">-</span>
+                        </div>
+                        <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 1.2rem;">
+                            <span>Total</span>
+                            <span id="summary-total" style="color: #64ffda; font-weight: 800;">IDR 0</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep(2)">Back</button>
+                        <button type="submit" class="btn btn-primary">Confirm Booking</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script src="dataManager.js"></script>
+    <script src="booking.js"></script>
+</body>
+
+</html>
